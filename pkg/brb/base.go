@@ -1,4 +1,4 @@
-package handlers
+package brb
 
 import (
 	"fmt"
@@ -6,12 +6,13 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"strconv"
 	"strings"
 )
 
 const (
-	sourceHost      = "http://localhost:8080"
-	byzantineFactor = 3
+	sourceHost = "http://localhost:8080"
+	//byzantineFactor = 3
 )
 
 var (
@@ -28,7 +29,7 @@ type Instance struct {
 	Readys    map[string]string
 }
 
-func (i *Instance) clear() {
+func (i *Instance) Clear(_ http.ResponseWriter, _ *http.Request) {
 	i.SentEcho = false
 	i.SentReady = false
 	i.Delivered = false
@@ -49,17 +50,21 @@ func init() {
 		log.Fatalln("unable to read hosts: ", err)
 	}
 
-	hosts = strings.Split(string(data), "\n")
-	log.Println("hosts: ", hosts)
+	allData := strings.Split(string(data), "\n")
+	hosts = allData[1:]
+	f1, _ := strconv.ParseInt(allData[0], 10, 32)
+	f = int(f1)
+	//log.Println("hosts: ", hosts)
 
 	n = len(hosts)
-	f = n / byzantineFactor
+	//f = n / byzantineFactor
 }
 
 func makeRequest(rType, message, from, host string) {
-	req, err := http.NewRequest("GET", fmt.Sprintf("%s/deliver/%s", host, rType), nil)
+	//log.Println(fmt.Sprintf("%s -> %s - %s %s", from, host, rType, message))
+	req, err := http.NewRequest("GET", fmt.Sprintf("%s/brb/deliver/%s", host, rType), nil)
 	if err != nil {
-		log.Fatalln("unable to reach host: ", err)
+		//log.Fatalln("unable to reach host: ", err)
 	}
 
 	q := req.URL.Query()
@@ -67,11 +72,11 @@ func makeRequest(rType, message, from, host string) {
 	q.Add("from", from)
 	req.URL.RawQuery = q.Encode()
 
-	log.Println(req.URL.String())
+	//log.Println(req.URL.String())
 
 	_, err = http.Get(req.URL.String())
 	if err != nil {
-		log.Fatalf("unable to reach host '%s'", host)
+		//log.Fatalf("unable to reach host '%s'", host)
 	}
 }
 
@@ -161,9 +166,7 @@ func (i *Instance) checkDeliver(currentHost string) {
 	for message, cnt := range messagesCnt {
 		if message != "" && cnt > 2*f && !i.Delivered {
 			i.Delivered = true
-			log.Printf("%s delivered message %s", currentHost, message)
-
-			i.clear()
+			log.Printf("%s delivered message %s", currentHost, "0") // replace 0 with message
 		}
 	}
 }
